@@ -13,14 +13,15 @@ typedef struct {
 } Line;
 
 Body collLine(Body body, float radius, Vector2 lineStart, Vector2 lineEnd);
+void collBallBall(Body *a, Body *b, float radius);
 
-#define MAX_BALLS 10
+#define MAX_BALLS 30
 
 int main(void)
 {
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-    const float gravity = 0.3f;
+    const int screenWidth = 1000;
+    const int screenHeight = 600;
+    const float gravity = 0.2f;
     const float radius = 10.0f;
 
     InitWindow(screenWidth, screenHeight, "Physics Simulation");
@@ -30,16 +31,16 @@ int main(void)
     int ballCount = MAX_BALLS;
 
     for (int i = 0; i < ballCount; i++) {
-        balls[i].position = (Vector2){ 100.0f + i * 25.0f, 50.0f };
+        balls[i].position = (Vector2){ 25.0f + i * 10.0f, 70.0f };
         balls[i].velocity = (Vector2){ (float)(i - 5), 0.0f };
     }
 
     Line lines[] = {
-        { { 0, 430 }, { 800, 450 } },
-        { { 20, 0 }, { 0, 450 } },
-        { { 0, 0 }, { 800, 20 } },
-        { { 800, 0 }, { 780, 450 } },
-        { { 100, 250 }, { 500, 300 } }
+        { { 0, screenHeight - 20 }, { screenWidth, screenHeight } },
+        { { 20, 0 }, { 0, screenHeight } },
+        { { 0, 0 }, { screenWidth, 20 } },
+        { { screenWidth, 0 }, { screenWidth, screenHeight } },
+        { { 100, 250 }, { 700, 300 } }
     };
 
     int lineCount = sizeof(lines) / sizeof(lines[0]);
@@ -64,7 +65,11 @@ int main(void)
                 }
             }
         }
-
+        for (int i = 0; i < ballCount; i++) {
+            for (int j = i + 1; j < ballCount; j++) {
+                collBallBall(&balls[i], &balls[j], radius);
+            }
+        }
         BeginDrawing();
             ClearBackground(RAYWHITE);
 
@@ -157,4 +162,57 @@ Body collLine(Body body, float radius, Vector2 lineStart, Vector2 lineEnd)
     }
 
     return body;
+}
+
+void collBallBall(Body *a, Body *b, float radius)
+{
+    const float restitution = 0.6f;
+
+    Vector2 delta = {
+        b->position.x - a->position.x,
+        b->position.y - a->position.y
+    };
+
+    float dist2 = delta.x * delta.x + delta.y * delta.y;
+    float minDist = radius * 2.0f;
+
+    if (dist2 >= minDist * minDist)
+        return;
+
+    float dist = sqrtf(dist2);
+    if (dist == 0.0f)
+        return;
+
+    Vector2 normal = {
+        delta.x / dist,
+        delta.y / dist
+    };
+
+    float penetration = minDist - dist;
+
+    a->position.x -= normal.x * penetration * 0.5f;
+    a->position.y -= normal.y * penetration * 0.5f;
+    b->position.x += normal.x * penetration * 0.5f;
+    b->position.y += normal.y * penetration * 0.5f;
+
+    Vector2 relVel = {
+        b->velocity.x - a->velocity.x,
+        b->velocity.y - a->velocity.y
+    };
+
+    float vn = relVel.x * normal.x + relVel.y * normal.y;
+    if (vn > 0.0f)
+        return;
+
+    float j = -(1.0f + restitution) * vn * 0.5f;
+
+    Vector2 impulse = {
+        normal.x * j,
+        normal.y * j
+    };
+
+    a->velocity.x -= impulse.x;
+    a->velocity.y -= impulse.y;
+    b->velocity.x += impulse.x;
+    b->velocity.y += impulse.y;
 }
