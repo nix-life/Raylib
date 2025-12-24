@@ -21,7 +21,7 @@ int main(void)
 {
     const int screenWidth = 1000;
     const int screenHeight = 600;
-    const float gravity = 0.2f;
+    const float gravity = 0.3f;
     const float radius = 10.0f;
 
     InitWindow(screenWidth, screenHeight, "Physics Simulation");
