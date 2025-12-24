@@ -3,7 +3,8 @@
 #include <math.h>
 
 #define MAX_BALLS 20
-#define SOLVER_ITERS 4
+#define SOLVER_ITERS 6
+#define SUBSTEPS 2
 
 typedef struct {
     Vector2 position;
@@ -58,22 +59,26 @@ int main(void)
 
         while (accumulator >= FIXED_DT)
         {
-            for (int b = 0; b < ballCount; b++) {
-                balls[b].velocity.y += gravity;
-                balls[b].position.x += balls[b].velocity.x;
-                balls[b].position.y += balls[b].velocity.y;
-            }
+            for (int step = 0; step < SUBSTEPS; step++)
+            {
+                for (int b = 0; b < ballCount; b++) {
+                    balls[b].velocity.y += gravity / SUBSTEPS;
 
-            for (int s = 0; s < SOLVER_ITERS; s++) {
-                for (int i = 0; i < ballCount; i++) {
-                    for (int j = i + 1; j < ballCount; j++)
-                        collBallBall(&balls[i], &balls[j], radius);
+                    balls[b].position.x += balls[b].velocity.x / SUBSTEPS;
+                    balls[b].position.y += balls[b].velocity.y / SUBSTEPS;
+                }
 
-                    for (int l = 0; l < lineCount; l++)
-                        balls[i] = collLine(
-                            balls[i], radius,
-                            lines[l].start, lines[l].end
-                        );
+                for (int s = 0; s < SOLVER_ITERS; s++) {
+                    for (int i = 0; i < ballCount; i++) {
+                        for (int j = i + 1; j < ballCount; j++)
+                            collBallBall(&balls[i], &balls[j], radius);
+
+                        for (int l = 0; l < lineCount; l++)
+                            balls[i] = collLine(
+                                balls[i], radius,
+                                lines[l].start, lines[l].end
+                            );
+                    }
                 }
             }
 
